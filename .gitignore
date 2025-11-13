@@ -1,1 +1,4 @@
 .venv
+
+*.gpkg
+analysis/create_map.ipynb
