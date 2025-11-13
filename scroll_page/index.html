@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта Сахалина - Scrollama скроллинг</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow-x: hidden;
+        }
+
+        #map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #scrolly {
+            position: relative;
+            z-index: 2;
+        }
+
+        .scrolly-content {
+            position: relative;
+            padding: 0;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .step {
+            margin: 0 auto 100vh;
+            padding: 25px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .step.is-active {
+            opacity: 1;
+        }
+
+        .step-left {
+            margin-left: 5%;
+            margin-right: auto;
+        }
+
+        .step-right {
+            margin-left: auto;
+            margin-right: 5%;
+        }
+
+        .step p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .intro {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .intro h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .intro p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Настройки внешнего вида карты можно изменить здесь */
+        .leaflet-container {
+            background-color: #aad3df; /* Цвет фона для водных объектов */
+        }
+
+        /* Стили для маркеров на карте */
+        .custom-marker {
+            background-color: #e74c3c;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="intro">
+        <h1>Остров Сахалин</h1>
+        <p>Прокрутите вниз, чтобы исследовать города Сахалина</p>
+    </div>
+
+    <div id="scrolly">
+        <div class="scrolly-content">
+            <!-- Первые два шага на общей карте -->
+            <div class="step step-left" data-step="0">
+                <p>Сахалин - крупнейший остров России, расположенный у восточного побережья Азии.</p>
+            </div>
+            <div class="step step-right" data-step="1">
+                <p>Остров омывается Охотским и Японским морями, отделяясь от материка Татарским проливом.</p>
+            </div>
+
+            <!-- Шаги для Южно-Сахалинска -->
+            <div class="step step-left" data-step="2">
+                <p>Южно-Сахалинск - административный центр Сахалинской области.</p>
+            </div>
+            <div class="step step-right" data-step="3">
+                <p>Город расположен в юго-восточной части острова и является крупнейшим населённым пунктом Сахалина.</p>
+            </div>
+
+            <!-- Шаги для Корсакова -->
+            <div class="step step-left" data-step="4">
+                <p>Корсаков - важный морской порт на юге Сахалина.</p>
+            </div>
+            <div class="step step-right" data-step="5">
+                <p>Город расположен на берегу залива Анива и является одним из основных транспортных узлов острова.</p>
+            </div>
+
+            <!-- Шаги для Холмска -->
+            <div class="step step-left" data-step="6">
+                <p>Холмск - крупный портовый город на западном побережье Сахалина.</p>
+            </div>
+            <div class="step step-right" data-step="7">
+                <p>Город известен своим морским вокзалом и является важным центром рыбной промышленности.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/scrollama"></script>
+    <script>
+        // Инициализация карты
+        // НАСТРОЙКИ ВНЕШНЕГО ВИДА КАРТЫ:
+        // Можно изменить координаты центра, уровень масштабирования, стиль карты
+        const map = L.map('map', {
+            center: [50.0, 143.0], // Центр карты (широта, долгота)
+            zoom: 6, // Начальный уровень масштабирования
+            minZoom: 5, // Минимальный уровень масштабирования
+            maxZoom: 13, // Максимальный уровень масштабирования
+            zoomControl: false // Отключаем стандартный контрол зума (добавим свой позже)
+        });
+
+        // Добавляем контрол зума в правый верхний угол
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(map);
+
+        // Используем OpenStreetMap как базовый слой (открытый сервис)
+        // НАСТРОЙКИ СТИЛЯ КАРТЫ:
+        // Можно заменить на другой тайловый сервис или изменить параметры отображения
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 18
+        }).addTo(map);
+
+        // Координаты городов
+        const cities = {
+            yuzhno: { lat: 46.9581, lng: 142.7333, zoom: 9 }, // Южно-Сахалинск
+            korsakov: { lat: 46.6333, lng: 142.7667, zoom: 11 }, // Корсаков
+            kholmsk: { lat: 47.0403, lng: 142.0431, zoom: 11 }  // Холмск
+        };
+
+        // Добавляем маркеры для городов
+        // НАСТРОЙКИ МАРКЕРОВ:
+        // Можно изменить цвет, размер, иконки маркеров
+        const yuzhnoMarker = L.circleMarker([cities.yuzhno.lat, cities.yuzhno.lng], {
+            color: '#e74c3c',
+            fillColor: '#e74c3c',
+            fillOpacity: 0.7,
+            radius: 8
+        }).addTo(map).bindPopup('Южно-Сахалинск');
+
+        const korsakovMarker = L.circleMarker([cities.korsakov.lat, cities.korsakov.lng], {
+            color: '#3498db',
+            fillColor: '#3498db',
+            fillOpacity: 0.7,
+            radius: 8
+        }).addTo(map).bindPopup('Корсаков');
+
+        const kholmskMarker = L.circleMarker([cities.kholmsk.lat, cities.kholmsk.lng], {
+            color: '#2ecc71',
+            fillColor: '#2ecc71',
+            fillOpacity: 0.7,
+            radius: 8
+        }).addTo(map).bindPopup('Холмск');
+
+        // Инициализация Scrollama
+        const scroller = scrollama();
+
+        // Функция для обработки шагов
+        function handleStepEnter(response) {
+            const step = response.element;
+            const stepIndex = parseInt(step.getAttribute('data-step'));
+            
+            // Убираем активный класс у всех шагов
+            document.querySelectorAll('.step').forEach(s => {
+                s.classList.remove('is-active');
+            });
+            
+            // Добавляем активный класс к текущему шагу
+            step.classList.add('is-active');
+            
+            // Анимация карты в зависимости от шага
+            switch(stepIndex) {
+                case 0:
+                    // Общий вид Сахалина
+                    map.flyTo([50.0, 143.0], 6, {
+                        duration: 1.5
+                    });
+                    break;
+                case 1:
+                    // Остаемся на общем виде
+                    break;
+                case 2:
+                    // Первое приближение к Южно-Сахалинску
+                    map.flyTo([cities.yuzhno.lat, cities.yuzhno.lng], cities.yuzhno.zoom - 2, {
+                        duration: 1.5
+                    });
+                    break;
+                case 3:
+                    // Второе приближение к Южно-Сахалинску
+                    map.flyTo([cities.yuzhno.lat, cities.yuzhno.lng], cities.yuzhno.zoom, {
+                        duration: 1.5
+                    });
+                    break;
+                case 4:
+                    // Первое приближение к Корсакову
+                    map.flyTo([cities.korsakov.lat, cities.korsakov.lng], cities.korsakov.zoom - 2, {
+                        duration: 1.5
+                    });
+                    break;
+                case 5:
+                    // Второе приближение к Корсакову
+                    map.flyTo([cities.korsakov.lat, cities.korsakov.lng], cities.korsakov.zoom, {
+                        duration: 1.5
+                    });
+                    break;
+                case 6:
+                    // Первое приближение к Холмску
+                    map.flyTo([cities.kholmsk.lat, cities.kholmsk.lng], cities.kholmsk.zoom - 2, {
+                        duration: 1.5
+                    });
+                    break;
+                case 7:
+                    // Второе приближение к Холмску
+                    map.flyTo([cities.kholmsk.lat, cities.kholmsk.lng], cities.kholmsk.zoom, {
+                        duration: 1.5
+                    });
+                    break;
+            }
+        }
+
+        // Инициализация скроллера
+        function init() {
+            scroller
+                .setup({
+                    step: '.step',
+                    offset: 0.5, // Когда шаг становится активным (50% высоты экрана)
+                    debug: false // Отключаем отладку в продакшене
+                })
+                .onStepEnter(handleStepEnter);
+            
+            // Обработка изменения размера окна
+            window.addEventListener('resize', scroller.resize);
+        }
+
+        // Запуск при загрузке страницы
+        init();
+    </script>
+</body>
+</html>
