@@ -1,5 +1,6 @@
-body {
-    background-color: #fff!important;
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 header {
@@ -17,6 +18,7 @@ header {
 
 blockquote {
   font-family: 'Montserrat', 'Arial', sans-serif;
+  margin-top: 0;
   padding: 0;
   border-left: 0;
 }
@@ -33,4 +35,14 @@ blockquote cite {
   font-size: 16px;
   line-height: 30px;
   color: #aaaaaa;
+}
+
+.control-map {
+  border: 1px solid lightgray;
+  border-radius: 6px;
+  padding: 5px 20px 10px;
+}
+
+.st-emotion-cache-13tdgzb {
+  text-align: center;
 }
